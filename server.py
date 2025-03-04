@@ -225,14 +225,14 @@ async def text_to_3d(prompt: str = Body()):
     i23d = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
 
     image = t2i(prompt)
-    image.save(output_folder+"/mesh.png")
+    image.save(output_folder+"/mesh1.png")
 
     image = rembg(image)
     mesh = i23d(image, num_inference_steps=30, mc_algo='mc')[0]
     mesh = FloaterRemover()(mesh)
     mesh = DegenerateFaceRemover()(mesh)
     mesh = FaceReducer()(mesh)
-    mesh.export(output_folder+'mesh.glb')
+    mesh.export(output_folder+'/mesh1.glb')
 
     print(f"Successfully generated: {output_folder}")
     print(f"Generation time: {time.time() - start}")

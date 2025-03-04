@@ -66,6 +66,7 @@ def text_to_3d(prompt='a car'):
 
     image = t2i(prompt)
     image = rembg(image)
+
     mesh = i23d(image, num_inference_steps=30, mc_algo='mc')[0]
     mesh = FloaterRemover()(mesh)
     mesh = DegenerateFaceRemover()(mesh)

@@ -18,7 +18,7 @@ import torch
 import trimesh
 import uvicorn
 from PIL import Image
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Body
 from fastapi.responses import JSONResponse, FileResponse
 
 from hy3dgen.rembg import BackgroundRemover
@@ -212,7 +212,7 @@ def copy_file(old_file, new_file):
 
 
 @app.post("/generate_from_text")
-async def text_to_3d(prompt: str):
+async def text_to_3d(prompt: str = Body()):
     os.makedirs(output_folder, exist_ok=True)
     # Stage 1: Text to Image
     start = time.time()

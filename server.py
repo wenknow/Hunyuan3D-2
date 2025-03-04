@@ -212,7 +212,7 @@ def copy_file(old_file, new_file):
 
 
 @app.post("/generate_from_text")
-async def text_to_3d(prompt: str = Body()):
+async def text_to_3d(prompt: str):
     os.makedirs(output_folder, exist_ok=True)
     # Stage 1: Text to Image
     start = time.time()

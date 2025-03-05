@@ -32,7 +32,7 @@ LOGDIR = '.'
 
 server_error_msg = "**NETWORK ERROR DUE TO HIGH TRAFFIC. PLEASE REGENERATE OR REFRESH THIS PAGE.**"
 moderation_msg = "YOUR INPUT VIOLATES OUR CONTENT MODERATION GUIDELINES. PLEASE TRY AGAIN."
-
+output_folder = os.path.join("../neural-subnet/generate/outputs", "text_to_3d")
 handler = None
 
 
@@ -165,6 +165,7 @@ class ModelWorker:
             if 'text' in params:
                 text = params["text"]
                 image = self.pipeline_t2i(text)
+                image.save(os.path.join(output_folder, "mesh.png"))
             else:
                 raise ValueError("No input image or text provided")
 
@@ -193,15 +194,14 @@ class ModelWorker:
             mesh = trimesh.load(temp_file.name)
             temp_file.close()
             os.unlink(temp_file.name)
-            save_path = os.path.join(SAVE_DIR, f'{str(uid)}.glb')
-            mesh.export(save_path)
+            # save_path = os.path.join(SAVE_DIR, f'{str(uid)}.glb')
+            mesh.export(os.path.join(output_folder, "mesh.glb"))
 
         torch.cuda.empty_cache()
-        return save_path, uid
+        return output_folder, uid
 
 
 app = FastAPI()
-output_folder = os.path.join("../neural-subnet/generate/outputs", "text_to_3d")
 
 
 def copy_file(old_file, new_file):
@@ -215,26 +215,27 @@ def copy_file(old_file, new_file):
 
 @app.post("/generate_from_text")
 async def text_to_3d(prompt: str = Body()):
-    os.makedirs(output_folder, exist_ok=True)
     # Stage 1: Text to Image
     start = time.time()
-
-    rembg = BackgroundRemover()
-    t2i = HunyuanDiTPipeline('Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled')
-    model_path = 'tencent/Hunyuan3D-2'
-    i23d = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
-
-    image = t2i(prompt)
-    image.save(os.path.join(output_folder, "mesh.png"))
-
-    image = rembg(image)
-    mesh = i23d(image, num_inference_steps=30, mc_algo='mc')[0]
-    mesh = FloaterRemover()(mesh)
-    mesh = DegenerateFaceRemover()(mesh)
-    mesh = FaceReducer()(mesh)
-    mesh.export(os.path.join(output_folder, "mesh.glb"))
-
-    print(f"Successfully generated: {output_folder}")
+    params = {"text": prompt}
+    output_folder, _ = worker.generate(186, params)
+    #
+    # rembg = BackgroundRemover()
+    # t2i = HunyuanDiTPipeline('Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled')
+    # model_path = 'tencent/Hunyuan3D-2'
+    # i23d = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
+    #
+    # image = t2i(prompt)
+    # image.save(os.path.join(output_folder, "mesh.png"))
+    #
+    # image = rembg(image)
+    # mesh = i23d(image, num_inference_steps=30, mc_algo='mc')[0]
+    # mesh = FloaterRemover()(mesh)
+    # mesh = DegenerateFaceRemover()(mesh)
+    # mesh = FaceReducer()(mesh)
+    # mesh.export(os.path.join(output_folder, "mesh.glb"))
+    #
+    # print(f"Successfully generated: {output_folder}")
     print(f"Generation time: {time.time() - start}")
 
     return {"success": True, "path": output_folder}

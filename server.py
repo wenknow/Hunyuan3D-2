@@ -201,7 +201,7 @@ class ModelWorker:
 
 
 app = FastAPI()
-output_folder = os.path.join("~/code/neural-subnet/generate/outputs", "text_to_3d")
+output_folder = os.path.join("../neural-subnet/generate/outputs", "text_to_3d")
 
 
 def copy_file(old_file, new_file):
@@ -225,7 +225,6 @@ async def text_to_3d(prompt: str = Body()):
     i23d = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
 
     image = t2i(prompt)
-    print(f"type:{type(image)} image:{image}")
     image.save(os.path.join(output_folder, "mesh.png"))
 
     image = rembg(image)

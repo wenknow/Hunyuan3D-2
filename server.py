@@ -225,6 +225,7 @@ async def text_to_3d(prompt: str = Body()):
     i23d = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
 
     image = t2i(prompt)
+    print(f"type:{type(image)} image:{image}")
     image.save(os.path.join(output_folder, "mesh.png"))
 
     image = rembg(image)

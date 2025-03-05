@@ -216,63 +216,26 @@ def copy_file(old_file, new_file):
 @app.post("/generate_from_text")
 async def text_to_3d(prompt: str = Body()):
     # Stage 1: Text to Image
+    print(f"prompt: {prompt}")
+
     start = time.time()
     params = {"text": prompt}
-    output_folder, _ = worker.generate(186, params)
-    #
-    # rembg = BackgroundRemover()
-    # t2i = HunyuanDiTPipeline('Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled')
-    # model_path = 'tencent/Hunyuan3D-2'
-    # i23d = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
-    #
-    # image = t2i(prompt)
-    # image.save(os.path.join(output_folder, "mesh.png"))
-    #
-    # image = rembg(image)
-    # mesh = i23d(image, num_inference_steps=30, mc_algo='mc')[0]
-    # mesh = FloaterRemover()(mesh)
-    # mesh = DegenerateFaceRemover()(mesh)
-    # mesh = FaceReducer()(mesh)
-    # mesh.export(os.path.join(output_folder, "mesh.glb"))
-    #
-    # print(f"Successfully generated: {output_folder}")
-    print(f"Generation time: {time.time() - start}")
+    folder, _ = worker.generate(186, params)
 
-    return {"success": True, "path": output_folder}
+    print(f"Generation time: {time.time() - start}")
+    return {"success": True, "path": folder}
 
 
 @app.post("/generate_from_image")
 async def image_to_3d(image_path: str):
-    rembg = BackgroundRemover()
-    model_path = 'tencent/Hunyuan3D-2'
+    print(f"image_path: {image_path}")
 
-    image = Image.open(image_path)
+    start = time.time()
+    params = {"image": image_path}
+    folder, _ = worker.generate(186, params)
 
-    if image.mode == 'RGB':
-        image = rembg(image)
-
-    pipeline = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
-
-    mesh = pipeline(image=image, num_inference_steps=30, mc_algo='mc',
-                    generator=torch.manual_seed(2025))[0]
-    mesh = FloaterRemover()(mesh)
-    mesh = DegenerateFaceRemover()(mesh)
-    mesh = FaceReducer()(mesh)
-    mesh.export(output_folder + 'mesh.glb')
-
-    try:
-        from hy3dgen.texgen import Hunyuan3DPaintPipeline
-        pipeline = Hunyuan3DPaintPipeline.from_pretrained(model_path)
-        mesh = pipeline(mesh, image=image)
-        mesh.export(output_folder + 'texture.glb')
-    except Exception as e:
-        print(e)
-        print('Please try to install requirements by following README.md')
-
-    if not os.path.exists(image_path):
-        raise HTTPException(status_code=400, detail="Image file not found")
-
-    return {"message": "3D model generated successfully from image", "output_folder": output_folder}
+    print(f"Generation time: {time.time() - start}")
+    return {"message": "3D model generated successfully from image", "output_folder": folder}
 
 
 if __name__ == "__main__":

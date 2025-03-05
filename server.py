@@ -13,7 +13,7 @@ import tempfile
 import time
 import uuid
 from io import BytesIO
-from urllib.parse import unquote
+from urllib.parse import unquote_plus
 
 import torch
 import trimesh
@@ -214,7 +214,7 @@ def copy_file(old_file, new_file):
 @app.post("/generate_from_text")
 async def text_to_3d(prompt: str = Body()):
     # Stage 1: Text to Image
-    decoded_prompt = unquote(prompt)
+    decoded_prompt = unquote_plus(prompt)
     print(f"prompt: {decoded_prompt}")
 
     start = time.time()

@@ -162,7 +162,7 @@ class ModelWorker:
         else:
             if 'text' in params:
                 text = params["text"]
-                image = self.pipeline_t2i(text)
+                image = self.pipeline_t2i(text,42, 40)
                 image.save(os.path.join(output_folder, "mesh.png"))
             else:
                 raise ValueError("No input image or text provided")

@@ -7,21 +7,19 @@ import base64
 import logging
 import logging.handlers
 import os
+import shutil
 import sys
 import tempfile
-import threading
-import traceback
-import uuid
 import time
-import shutil
+import uuid
 from io import BytesIO
+from urllib.parse import unquote
 
 import torch
 import trimesh
 import uvicorn
 from PIL import Image
-from fastapi import FastAPI, Request, Body
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import FastAPI, Body
 
 from hy3dgen.rembg import BackgroundRemover
 from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline, FloaterRemover, DegenerateFaceRemover, FaceReducer
@@ -216,10 +214,11 @@ def copy_file(old_file, new_file):
 @app.post("/generate_from_text")
 async def text_to_3d(prompt: str = Body()):
     # Stage 1: Text to Image
-    print(f"prompt: {prompt}")
+    decoded_prompt = unquote(prompt)
+    print(f"prompt: {decoded_prompt}")
 
     start = time.time()
-    params = {"text": prompt}
+    params = {"text": decoded_prompt}
     folder, _ = worker.generate(186, params)
 
     print(f"Generation time: {time.time() - start}")

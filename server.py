@@ -168,32 +168,38 @@ class ModelWorker:
                 raise ValueError("No input image or text provided")
 
         image = self.rembg(image)
-        params['image'] = image
-
-        if 'mesh' in params:
-            mesh = trimesh.load(BytesIO(base64.b64decode(params["mesh"])), file_type='glb')
-        else:
-            seed = params.get("seed", 1234)
-            params['generator'] = torch.Generator(self.device).manual_seed(seed)
-            params['octree_resolution'] = params.get("octree_resolution", 256)
-            params['num_inference_steps'] = params.get("num_inference_steps", 30)
-            params['guidance_scale'] = params.get('guidance_scale', 7.5)
-            params['mc_algo'] = 'mc'
-            mesh = self.pipeline(**params)[0]
-
-        if params.get('texture', False):
-            mesh = FloaterRemover()(mesh)
-            mesh = DegenerateFaceRemover()(mesh)
-            mesh = FaceReducer()(mesh, max_facenum=params.get('face_count', 40000))
-            mesh = self.pipeline_tex(mesh, image)
-
-        with tempfile.NamedTemporaryFile(suffix='.glb', delete=False) as temp_file:
-            mesh.export(temp_file.name)
-            mesh = trimesh.load(temp_file.name)
-            temp_file.close()
-            os.unlink(temp_file.name)
-            # save_path = os.path.join(SAVE_DIR, f'{str(uid)}.glb')
-            mesh.export(os.path.join(output_folder, "mesh.glb"))
+        mesh = self.pipeline(image, num_inference_steps=30, mc_algo='mc')[0]
+        mesh = FloaterRemover()(mesh)
+        mesh = DegenerateFaceRemover()(mesh)
+        mesh = FaceReducer()(mesh)
+        mesh.export(os.path.join(output_folder, "mesh.glb"))
+        #
+        # params['image'] = image
+        #
+        # if 'mesh' in params:
+        #     mesh = trimesh.load(BytesIO(base64.b64decode(params["mesh"])), file_type='glb')
+        # else:
+        #     seed = params.get("seed", 1234)
+        #     params['generator'] = torch.Generator(self.device).manual_seed(seed)
+        #     params['octree_resolution'] = params.get("octree_resolution", 256)
+        #     params['num_inference_steps'] = params.get("num_inference_steps", 30)
+        #     params['guidance_scale'] = params.get('guidance_scale', 7.5)
+        #     params['mc_algo'] = 'mc'
+        #     mesh = self.pipeline(**params)[0]
+        #
+        # if params.get('texture', False):
+        #     mesh = FloaterRemover()(mesh)
+        #     mesh = DegenerateFaceRemover()(mesh)
+        #     mesh = FaceReducer()(mesh, max_facenum=params.get('face_count', 40000))
+        #     mesh = self.pipeline_tex(mesh, image)
+        #
+        # with tempfile.NamedTemporaryFile(suffix='.glb', delete=False) as temp_file:
+        #     mesh.export(temp_file.name)
+        #     mesh = trimesh.load(temp_file.name)
+        #     temp_file.close()
+        #     os.unlink(temp_file.name)
+        #     # save_path = os.path.join(SAVE_DIR, f'{str(uid)}.glb')
+        #     mesh.export(os.path.join(output_folder, "mesh.glb"))
 
         torch.cuda.empty_cache()
         return output_folder, uid

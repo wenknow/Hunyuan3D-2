@@ -75,16 +75,16 @@ class HunyuanDiTPipeline:
         )[0][0]
 
     @torch.no_grad()
-    def __call__(self, prompt, seed=0):
+    def __call__(self, prompt, seed=0, steps=25):
         seed_everything(seed)
         generator = torch.Generator(device=self.pipe.device)
         generator = generator.manual_seed(int(seed))
-        prompt_txt = prompt[:60] + self.pos_txt
-        print(f"real prompt_txt:{prompt_txt}")
+        prompt_txt = prompt + self.pos_txt
+        print(f"real seed:{seed} steps:{steps} prompt_txt:{prompt_txt}")
         out_img = self.pipe(
             prompt=prompt_txt,
             negative_prompt=self.neg_txt,
-            num_inference_steps=25,
+            num_inference_steps=steps,
             pag_scale=1.3,
             width=1024,
             height=1024,

@@ -190,6 +190,7 @@ class ModelWorker:
             else:
                 raise ValueError("No input image or text provided")
 
+        image = self.rembg(image)
         mesh = self.pipeline(image=image)[0]
         mesh.export(os.path.join(output_folder, "mesh.glb"))
         # params['image'] = image

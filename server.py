@@ -134,7 +134,7 @@ def get_args():
     parser.add_argument("--model_path", type=str, default='tencent/Hunyuan3D-2')
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--limit-model-concurrency", type=int, default=5)
-    parser.add_argument("--gen_seed", default=0, type=int)
+    parser.add_argument("--gen_seed", default=2025, type=int)
     parser.add_argument("--gen_steps", default=30, type=int)
     parser.add_argument("--octree_resolution", default=256, type=int)
     parser.add_argument("--guidance_scale", default=7.5, type=float)
@@ -193,8 +193,15 @@ class ModelWorker:
 
         image = self.rembg(image)
         # mesh = self.pipeline(image, num_inference_steps=30, mc_algo='mc')[0]
-        mesh = self.pipeline_fast(image=image, num_inference_steps=30, mc_algo='mc',
-                        generator=torch.manual_seed(2025))[0]
+        pipe_args = {
+            'image': image,
+            'generator': torch.Generator(self.device).manual_seed(args.gen_seed),
+            'octree_resolution': args.octree_resolution,
+            'num_inference_steps': args.gen_steps,
+            'guidance_scale': args.guidance_scale,
+            'mc_algo': args.mc_algo,
+        }
+        mesh = self.pipeline_fast(**pipe_args)[0]
 
         mesh = FloaterRemover()(mesh)
         mesh = DegenerateFaceRemover()(mesh)

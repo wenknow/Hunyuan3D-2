@@ -195,6 +195,10 @@ class ModelWorker:
         # mesh = self.pipeline(image, num_inference_steps=30, mc_algo='mc')[0]
         mesh = self.pipeline_fast(image=image, num_inference_steps=30, mc_algo='mc',
                         generator=torch.manual_seed(2025))[0]
+
+        mesh = FloaterRemover()(mesh)
+        mesh = DegenerateFaceRemover()(mesh)
+        mesh = FaceReducer()(mesh)
         mesh.export(os.path.join(output_folder, "mesh.glb"))
         # params['image'] = image
         #

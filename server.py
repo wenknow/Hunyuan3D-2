@@ -162,6 +162,7 @@ class ModelWorker:
         self.pipeline = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path, device=device)
         self.pipeline_t2i = HunyuanDiTPipeline('Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled',
                                                device=device)
+        self.pipeline_fast = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path, subfolder='hunyuan3d-dit-v2-0-fast',variant='fp16')
         self.pipeline_tex = Hunyuan3DPaintPipeline.from_pretrained(model_path)
 
     def get_queue_length(self):
@@ -191,7 +192,9 @@ class ModelWorker:
                 raise ValueError("No input image or text provided")
 
         image = self.rembg(image)
-        mesh = self.pipeline(image, num_inference_steps=30, mc_algo='mc')[0]
+        # mesh = self.pipeline(image, num_inference_steps=30, mc_algo='mc')[0]
+        mesh = self.pipeline_fast(image=image, num_inference_steps=30, mc_algo='mc',
+                        generator=torch.manual_seed(2025))[0]
         mesh.export(os.path.join(output_folder, "mesh.glb"))
         # params['image'] = image
         #

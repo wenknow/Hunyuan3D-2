@@ -7,7 +7,7 @@ import base64
 import logging
 import logging.handlers
 import os
-import shutil
+import random
 import sys
 import tempfile
 import time
@@ -128,6 +128,29 @@ def load_image_from_base64(image):
     return Image.open(BytesIO(base64.b64decode(image)))
 
 
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", type=str, default="0.0.0.0")
+    parser.add_argument("--model_path", type=str, default='tencent/Hunyuan3D-2')
+    parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--limit-model-concurrency", type=int, default=5)
+    parser.add_argument("--gen_seed", default=0, type=int)
+    parser.add_argument("--gen_steps", default=30, type=int)
+    parser.add_argument("--octree_resolution", default=256, type=int)
+    parser.add_argument("--guidance_scale", default=7.5, type=float)
+    parser.add_argument("--mc_algo", default="mc", type=str)
+    parser.add_argument("--max_faces_num", default=90000, type=int)
+    parser.add_argument("--t2i_seed", default=0, type=int)
+    parser.add_argument("--t2i_steps", default=25, type=int)
+    parser.add_argument("--port", default=8084, type=int)
+    args = parser.parse_args()
+    logger.info(f"args: {args}")
+    return args
+
+
+args = get_args()
+
+
 class ModelWorker:
     def __init__(self, model_path='tencent/Hunyuan3D-2', device='cuda'):
         self.model_path = model_path
@@ -162,70 +185,51 @@ class ModelWorker:
         else:
             if 'text' in params:
                 text = params["text"]
-                image = self.pipeline_t2i(text,42, 30)
+                image = self.pipeline_t2i(text, args.t2i_seed, args.t2i_steps)
                 image.save(os.path.join(output_folder, "mesh.png"))
             else:
                 raise ValueError("No input image or text provided")
 
-        image = self.rembg(image)
-        mesh = self.pipeline(image, num_inference_steps=30, mc_algo='mc')[0]
+        params['image'] = image
+
+        if 'mesh' in params:
+            mesh = trimesh.load(BytesIO(base64.b64decode(params["mesh"])), file_type='glb')
+        else:
+            params['generator'] = torch.Generator(self.device).manual_seed(args.gen_seed)
+            params['octree_resolution'] = args.octree_resolution
+            params['num_inference_steps'] = args.gen_steps
+            params['guidance_scale'] = args.guidance_scale
+            params['mc_algo'] = args.mc_algo
+            mesh = self.pipeline(**params)[0]
+
+        # if params.get('texture', False):
         mesh = FloaterRemover()(mesh)
         mesh = DegenerateFaceRemover()(mesh)
-        mesh = FaceReducer()(mesh)
-        mesh.export(os.path.join(output_folder, "mesh.glb"))
-        #
-        # params['image'] = image
-        #
-        # if 'mesh' in params:
-        #     mesh = trimesh.load(BytesIO(base64.b64decode(params["mesh"])), file_type='glb')
-        # else:
-        #     seed = params.get("seed", 1234)
-        #     params['generator'] = torch.Generator(self.device).manual_seed(seed)
-        #     params['octree_resolution'] = params.get("octree_resolution", 256)
-        #     params['num_inference_steps'] = params.get("num_inference_steps", 30)
-        #     params['guidance_scale'] = params.get('guidance_scale', 7.5)
-        #     params['mc_algo'] = 'mc'
-        #     mesh = self.pipeline(**params)[0]
-        #
-        # if params.get('texture', False):
-        #     mesh = FloaterRemover()(mesh)
-        #     mesh = DegenerateFaceRemover()(mesh)
-        #     mesh = FaceReducer()(mesh, max_facenum=params.get('face_count', 40000))
-        #     mesh = self.pipeline_tex(mesh, image)
-        #
-        # with tempfile.NamedTemporaryFile(suffix='.glb', delete=False) as temp_file:
-        #     mesh.export(temp_file.name)
-        #     mesh = trimesh.load(temp_file.name)
-        #     temp_file.close()
-        #     os.unlink(temp_file.name)
-        #     # save_path = os.path.join(SAVE_DIR, f'{str(uid)}.glb')
-        #     mesh.export(os.path.join(output_folder, "mesh.glb"))
+        mesh = FaceReducer()(mesh, max_facenum=args.max_faces_num)
+        mesh = self.pipeline_tex(mesh, image)
+
+        with tempfile.NamedTemporaryFile(suffix='.glb', delete=False) as temp_file:
+            mesh.export(temp_file.name)
+            mesh = trimesh.load(temp_file.name)
+            temp_file.close()
+            os.unlink(temp_file.name)
+            # save_path = os.path.join(SAVE_DIR, f'{str(uid)}.glb')
+            mesh.export(os.path.join(output_folder, "mesh.glb"))
 
         torch.cuda.empty_cache()
         return output_folder, uid
 
-
 app = FastAPI()
-
-
-def copy_file(old_file, new_file):
-    # 复制文件到验证器文件夹
-    try:
-        shutil.copy(old_file, new_file)
-        print(f"文件已成功复制到 {new_file}")
-    except Exception as e:
-        print(f"复制文件时出错: {e}")
-
-
 @app.post("/generate_from_text")
 async def text_to_3d(prompt: str = Body()):
     # Stage 1: Text to Image
     decoded_prompt = unquote_plus(prompt)
-    print(f"prompt: {decoded_prompt}")
+    uid = random.randint(1000, 99999)
+    print(f"uid:{uid}, prompt: {decoded_prompt}")
 
     start = time.time()
     params = {"text": decoded_prompt}
-    folder, _ = worker.generate(186, params)
+    folder, _ = worker.generate(uid, params)
 
     print(f"Generation time: {time.time() - start}")
     return {"success": True, "path": folder}
@@ -244,15 +248,6 @@ async def image_to_3d(image_path: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8084)
-    parser.add_argument("--model_path", type=str, default='tencent/Hunyuan3D-2')
-    parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--limit-model-concurrency", type=int, default=5)
-    args = parser.parse_args()
-    logger.info(f"args: {args}")
-
     model_semaphore = asyncio.Semaphore(args.limit_model_concurrency)
 
     worker = ModelWorker(model_path=args.model_path, device=args.device)

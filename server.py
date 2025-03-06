@@ -192,6 +192,7 @@ class ModelWorker:
 
         image = self.rembg(image)
         mesh = self.pipeline(image=image)[0]
+        mesh = self.pipeline_tex(mesh, image=image)
         mesh.export(os.path.join(output_folder, "mesh.glb"))
         # params['image'] = image
         #

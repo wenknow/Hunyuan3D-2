@@ -195,7 +195,7 @@ class ModelWorker:
         # mesh = self.pipeline(image, num_inference_steps=30, mc_algo='mc')[0]
         pipe_args = {
             'image': image,
-            'generator': torch.Generator(self.device).manual_seed(args.gen_seed),
+            'generator': torch.manual_seed(args.gen_seed),
             # 'octree_resolution': args.octree_resolution,
             'num_inference_steps': args.gen_steps,
             # 'guidance_scale': args.guidance_scale,

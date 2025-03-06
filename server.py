@@ -139,7 +139,7 @@ def get_args():
     parser.add_argument("--octree_resolution", default=256, type=int)
     parser.add_argument("--guidance_scale", default=7.5, type=float)
     parser.add_argument("--mc_algo", default="mc", type=str)
-    parser.add_argument("--max_faces_num", default=90000, type=int)
+    parser.add_argument("--max_faces_num", default=40000, type=int)
     parser.add_argument("--t2i_seed", default=0, type=int)
     parser.add_argument("--t2i_steps", default=25, type=int)
     parser.add_argument("--port", default=8084, type=int)
@@ -205,10 +205,10 @@ class ModelWorker:
 
         mesh = FloaterRemover()(mesh)
         mesh = DegenerateFaceRemover()(mesh)
-        mesh = FaceReducer()(mesh)
+        mesh = FaceReducer()(mesh, max_facenum=args.max_faces_num)
         mesh = self.pipeline_tex(mesh, image)
 
-        mesh.export(os.path.join(output_folder, "mesh.glb"))
+        # mesh.export(os.path.join(output_folder, "mesh.glb"))
         # params['image'] = image
         #
         # if 'mesh' in params:
@@ -227,13 +227,13 @@ class ModelWorker:
         # mesh = FaceReducer()(mesh, max_facenum=args.max_faces_num)
         # # mesh = self.pipeline_tex(mesh, image)
         #
-        # with tempfile.NamedTemporaryFile(suffix='.glb', delete=False) as temp_file:
-        #     mesh.export(temp_file.name)
-        #     mesh = trimesh.load(temp_file.name)
-        #     temp_file.close()
-        #     os.unlink(temp_file.name)
-        #     # save_path = os.path.join(SAVE_DIR, f'{str(uid)}.glb')
-        #     mesh.export(os.path.join(output_folder, "mesh.glb"))
+        with tempfile.NamedTemporaryFile(suffix='.glb', delete=False) as temp_file:
+            mesh.export(temp_file.name)
+            mesh = trimesh.load(temp_file.name)
+            temp_file.close()
+            os.unlink(temp_file.name)
+            # save_path = os.path.join(SAVE_DIR, f'{str(uid)}.glb')
+            mesh.export(os.path.join(output_folder, "mesh.glb"))
 
         torch.cuda.empty_cache()
         return output_folder, uid

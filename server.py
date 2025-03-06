@@ -206,7 +206,7 @@ class ModelWorker:
         mesh = FloaterRemover()(mesh)
         mesh = DegenerateFaceRemover()(mesh)
         mesh = FaceReducer()(mesh, max_facenum=args.max_faces_num)
-        mesh = self.pipeline_tex(mesh, image)
+        # mesh = self.pipeline_tex(mesh, image)
 
         # mesh.export(os.path.join(output_folder, "mesh.glb"))
         # params['image'] = image

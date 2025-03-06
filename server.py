@@ -201,7 +201,7 @@ class ModelWorker:
             'guidance_scale': args.guidance_scale,
             'mc_algo': args.mc_algo,
         }
-        mesh = self.pipeline_fast(**pipe_args)[0]
+        mesh = self.pipeline(**pipe_args)[0]
 
         mesh = FloaterRemover()(mesh)
         mesh = DegenerateFaceRemover()(mesh)

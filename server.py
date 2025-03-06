@@ -196,12 +196,12 @@ class ModelWorker:
         pipe_args = {
             'image': image,
             'generator': torch.Generator(self.device).manual_seed(args.gen_seed),
-            'octree_resolution': args.octree_resolution,
+            # 'octree_resolution': args.octree_resolution,
             'num_inference_steps': args.gen_steps,
-            'guidance_scale': args.guidance_scale,
+            # 'guidance_scale': args.guidance_scale,
             'mc_algo': args.mc_algo,
         }
-        mesh = self.pipeline(**pipe_args)[0]
+        mesh = self.pipeline_fast(**pipe_args)[0]
 
         mesh = FloaterRemover()(mesh)
         mesh = DegenerateFaceRemover()(mesh)

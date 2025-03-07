@@ -24,7 +24,7 @@ async def text_to_image(request: Request):
     seed = params.get('seed', 0)
     steps = params.get('steps', 25)
 
-    image = pipeline_t2i(decoded_prompt, seed, steps)
+    image = pipeline_t2i(decoded_prompt, int(seed), int(steps))
     image.save(os.path.join(output_folder, "mesh.png"))
 
     print(f"Generation time: {time.time() - start}")

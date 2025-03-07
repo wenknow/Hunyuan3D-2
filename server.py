@@ -19,7 +19,7 @@ import torch
 import trimesh
 import uvicorn
 from PIL import Image
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Request, Body
 
 from hy3dgen.rembg import BackgroundRemover
 from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline, FloaterRemover, DegenerateFaceRemover, FaceReducer
@@ -241,9 +241,10 @@ class ModelWorker:
 
 app = FastAPI()
 @app.post("/generate_from_text")
-async def text_to_3d(prompt: str = Body()):
+async def text_to_3d(request: Request):
     # Stage 1: Text to Image
-    decoded_prompt = unquote_plus(prompt)
+    params = await request.json()
+    decoded_prompt = unquote_plus(params['prompt'])
     uid = random.randint(1000, 99999)
     print(f"uid:{uid}, prompt: {decoded_prompt}")
 

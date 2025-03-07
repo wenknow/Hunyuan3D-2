@@ -1,5 +1,6 @@
 import os
 import time
+import argparse
 from urllib.parse import unquote_plus
 
 from fastapi import FastAPI, Request
@@ -20,8 +21,8 @@ async def text_to_image(request: Request):
     # Stage 1: Text to Image
     decoded_prompt = unquote_plus(params['prompt'])
     print(f"get params: {params}， decoded_prompt：{decoded_prompt}")
-    seed = params.get('seed')
-    steps = params.get('steps')
+    seed = params.get('seed', 0)
+    steps = params.get('steps', 25)
 
     image = pipeline_t2i(decoded_prompt, seed, steps)
     image.save(os.path.join(output_folder, "mesh.png"))
